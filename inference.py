@@ -620,7 +620,14 @@ class ExactInference(InferenceModule):
         current position is known.
         """
         "*** YOUR CODE HERE ***"
-        raiseNotDefined()
+        allPossible = DiscreteDistribution()
+        
+        for oldPos in self.allPositions:
+            newPosDist = self.getPositionDistribution(gameState, oldPos)
+            oldProb = self.beliefs[oldPos]
+            for newPos, prob in newPosDist.items():
+                allPossible[newPos] += prob * oldProb
+        self.beliefs = allPossible
         "*** END YOUR CODE HERE ***"
 
     def getBeliefDistribution(self):
@@ -652,7 +659,9 @@ class ParticleFilter(InferenceModule):
         """
         self.particles = []
         "*** YOUR CODE HERE ***"
-        raiseNotDefined()
+        num_legal = len(self.legalPositions)
+        for i in range(self.numParticles):
+            self.particles.append(self.legalPositions[i % num_legal])
         "*** END YOUR CODE HERE ***"
 
     def getBeliefDistribution(self):
@@ -664,7 +673,11 @@ class ParticleFilter(InferenceModule):
         This function should return a normalized distribution.
         """
         "*** YOUR CODE HERE ***"
-        raiseNotDefined()
+        dist = DiscreteDistribution()
+        for particle in self.particles:
+            dist[particle] += 1.0
+        dist.normalize()
+        return dist
         "*** END YOUR CODE HERE ***"
     
     ########### ########### ###########
@@ -684,7 +697,25 @@ class ParticleFilter(InferenceModule):
         the DiscreteDistribution may be useful.
         """
         "*** YOUR CODE HERE ***"
-        raiseNotDefined()
+        pacmanPosition = gameState.getPacmanPosition()
+        jailPosition = self.getJailPosition()
+        weights = DiscreteDistribution()
+        
+        for particle in self.particles:
+            prob = self.getObservationProb(observation, pacmanPosition, particle, jailPosition)
+            weights[particle] += prob
+            
+        if weights.total() == 0:
+            self.initializeUniformly(gameState)
+            return
+            
+        weights.normalize()
+        
+        new_particles = []
+        for _ in range(self.numParticles):
+            new_particles.append(weights.sample())
+            
+        self.particles = new_particles
         "*** END YOUR CODE HERE ***"
     
     ########### ########### ###########
@@ -697,5 +728,10 @@ class ParticleFilter(InferenceModule):
         gameState.
         """
         "*** YOUR CODE HERE ***"
-        raiseNotDefined()
+        new_particles = []
+        for particle in self.particles:
+            newPosDist = self.getPositionDistribution(gameState, particle)
+            new_particles.append(newPosDist.sample())
+            
+        self.particles = new_particles
         "*** END YOUR CODE HERE ***"
